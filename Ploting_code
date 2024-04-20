@@ -1,0 +1,72 @@
+#this is the RvP plotting code taken from Hela (R2 plots)
+#predicted_vs_real(y_real, y_pred, names, ranges, alpha='auto')
+
+
+from itertools import product
+
+import numpy as np
+from matplotlib.colors import to_rgba_array
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
+from sklearn import metrics, neighbors
+from sklearn.preprocessing import MinMaxScaler
+
+from models import resample_posterior
+from wpercentile import wmedian
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(x, *_, **__):
+        return x
+
+
+
+def predicted_vs_real(y_real, y_pred, names, ranges, alpha='auto'):
+
+    num_plots = y_pred.shape[1]
+    num_plot_rows = int(np.sqrt(num_plots))
+    num_plot_cols = (num_plots - 1) // num_plot_rows + 1
+
+    fig, axes = plt.subplots(num_plot_rows, num_plot_cols,
+                             figsize=(5*num_plot_cols, 5*num_plot_rows),
+                             squeeze=False)
+
+    for dim, (ax, name_i, range_i) in enumerate(zip(axes.ravel(),
+                                                    names, ranges)):
+
+        current_real = y_real[:, dim]
+        current_pred = y_pred[:, dim]
+
+        if alpha == 'auto':
+            # TODO: this is a quick fix. Check at some point in the future.
+            aux, *_ = np.histogram2d(current_real, current_pred, bins=60)
+            alpha_ = 1 / np.percentile(aux[aux > 0], 60)
+        elif alpha == 'none':
+            alpha_ = None
+        else:
+            alpha_ = alpha
+
+        r2 = metrics.r2_score(current_real, current_pred)
+        label = "$R^2 = {:.3f}$".format(r2)
+        ax.plot(current_real, current_pred, '.', label=label, alpha=alpha_)
+
+        ax.plot(range_i, range_i, '--', linewidth=3, color="C3", alpha=0.8)
+
+        ax.axis("equal")
+        ax.grid()
+        ax.set_xlim(range_i)
+        ax.set_ylim(range_i)
+        ax.set_xlabel("Real {}".format(name_i), fontsize=18)
+        ax.set_ylabel("Predicted {}".format(name_i), fontsize=18)
+        ax.legend(loc="upper left", fontsize=14)
+
+    fig.tight_layout()
+    return fig
+
+
+
+
+
+    

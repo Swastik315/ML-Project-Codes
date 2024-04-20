@@ -1,0 +1,81 @@
+import numpy as np
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import RobustScaler, MinMaxScaler
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.linear_model import Ridge
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.preprocessing import RobustScaler, MinMaxScaler
+from sklearn.ensemble import StackingRegressor
+import matplotlib.pyplot as plt
+from corner import corner
+import sys
+sys.path.append('/home/clab26/Desktop/HELA')
+
+from plot import *
+
+
+data = np.load('/home/clab26/Desktop/HELA/example_dataset/training.npy')
+data1 = np.load('/home/clab26/Desktop/HELA/example_dataset/testing.npy')
+wasp_12b = np.load('/home/clab26/Desktop/HELA/example_dataset/WASP12b.npy')
+
+X_train = data[:, :13]
+y_train = data[:, 13:]
+X_test = data1[:, :13]
+y_test = data1[:, 13:]
+
+
+scaler = RobustScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+base_models = [
+    ('random_forest', RandomForestRegressor(n_estimators=100, random_state=0)),
+    ('gradient_boosting', GradientBoostingRegressor(n_estimators=100, random_state=0)),
+    ('knn', KNeighborsRegressor(n_neighbors=11))
+]
+
+meta_model = Ridge()
+
+
+model = MultiOutputRegressor(StackingRegressor(estimators=base_models, final_estimator=meta_model))
+
+
+model.fit(X_train_scaled, y_train)
+
+
+train_r2_score = model.score(X_train_scaled, y_train)
+print("Training R2 Score:", train_r2_score)
+
+y_pred = model.predict(X_test_scaled)
+print("Model R2 Score:", r2_score(y_test, y_pred, multioutput='variance_weighted'))
+
+
+initial_preds = model.predict(X_test)
+
+
+wasp_12b_preds = model.predict(wasp_12b)
+
+predicted_vs_real(y_test, y_pred, names, ranges, alpha='auto')
+
+
+names = ["$T (K)$", "H$_2$O", "HCN", "NH$_3$", "$\\kappa_0$"]
+ranges = [[500, 2900], [-13, 0], [-13, 0], [-13, 0], [-13, 0]]
+CORNER_KWARGS = dict(
+    smooth=.9,
+    label_kwargs=dict(fontsize=16),
+    levels=[0.68, 0.95],
+    quantiles=[0.16, 0.5, 0.84],  
+    plot_density=False,
+    plot_datapoints=True,
+    fill_contours=True,
+    plot_contours=True,
+    show_titles=True,
+    range=ranges
+)
+
+fig = corner(initial_preds, labels=names, color='tomato', title_kwargs=dict(fontsize=16, c='tomato', loc='left'),
+             **CORNER_KWARGS)
+
+plt.show()

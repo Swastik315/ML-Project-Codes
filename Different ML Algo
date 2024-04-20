@@ -1,0 +1,37 @@
+#Different ML Algorith run just to chekck how is the performance with HELA Dataset.
+
+#Random Forest:
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score
+
+rf = RandomForestRegressor(n_estimators=1000, random_state=42)
+rf.fit(X_train, y_train)
+y_pred = rf.predict(X_test)
+r2 = r2_score(y_test, y_pred)
+print(f"R^2 Score: {r2}")
+
+
+#Support Vector Machine:
+
+from sklearn.svm import SVR
+from sklearn.metrics import r2_score
+from sklearn.multioutput import MultiOutputRegressor
+
+svr = SVR(kernel='rbf', C=1.0, epsilon=0.2)
+model = MultiOutputRegressor(svr)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+r2 = r2_score(y_test, y_pred)
+print(f"R^2 Score: {r2}")
+
+#XGBoost Regressor:
+from xgboost import XGBRegressor
+from sklearn.metrics import r2_score
+from sklearn.multioutput import MultiOutputRegressor
+xgb = XGBRegressor(objective ='reg:squarederror', colsample_bytree = 0.3, learning_rate = 0.1, max_depth = 5, alpha = 10, n_estimators = 100)
+model = MultiOutputRegressor(xgb)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+r2 = r2_score(y_test, y_pred)
+print(f"R^2 Score: {r2}")
